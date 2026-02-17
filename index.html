@@ -6,36 +6,16 @@
 <title>Romit QR Tracker</title>
 <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
 <style>
-  body {
-    font-family: Arial, sans-serif;
-    text-align: center;
-    padding: 50px;
-    background: #f7f7f7;
-  }
-  input {
-    width: 300px;
-    padding: 10px;
-    font-size: 16px;
-  }
-  button {
-    padding: 10px 20px;
-    margin-top: 10px;
-    font-size: 16px;
-    cursor: pointer;
-  }
-  #qr {
-    margin-top: 20px;
-  }
-  #result, #stats {
-    margin-top: 15px;
-    font-weight: bold;
-  }
+body { font-family: Arial; text-align:center; padding:50px; background:#f7f7f7; }
+input { width:300px; padding:10px; font-size:16px; }
+button { padding:10px 20px; font-size:16px; cursor:pointer; margin-top:10px; }
+#qr { margin-top:20px; }
+#result, #stats { margin-top:15px; font-weight:bold; }
 </style>
 </head>
 <body>
 
 <h1>Romit QR Tracker</h1>
-
 <input id="urlInput" type="text" placeholder="Paste your link here" />
 <br>
 <button onclick="createQR()">Generate QR</button>
@@ -47,61 +27,47 @@
 <script>
 let currentCode = null;
 
-// Use same domain
-const API = "";
-
 async function createQR() {
   const url = document.getElementById("urlInput").value.trim();
-  if (!url) {
-    alert("Please enter a URL");
-    return;
-  }
+  if(!url){ alert("Please enter a URL"); return; }
 
   try {
-    const response = await fetch(API + "/api/create", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url })
+    const res = await fetch("/api/api", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({url})
     });
 
-    const data = await response.json();
-    if (data.error) {
-      alert(data.error);
-      return;
-    }
+    const data = await res.json();
+    if(data.error){ alert(data.error); return; }
 
-    const shortUrl = data.shortUrl;
     currentCode = data.code;
 
     document.getElementById("result").innerHTML =
-      `<p>Short Link: <a href="${shortUrl}" target="_blank">${shortUrl}</a></p>`;
+      `<p>Short Link: <a href="${data.shortUrl}" target="_blank">${data.shortUrl}</a></p>`;
 
-    QRCode.toCanvas(document.getElementById("qr"), shortUrl);
+    QRCode.toCanvas(document.getElementById("qr"), data.shortUrl);
 
     loadStats();
-  } catch (err) {
+
+  } catch(err) {
     alert("Error creating QR code: " + err);
     console.error(err);
   }
 }
 
 async function loadStats() {
-  if (!currentCode) return;
-
+  if(!currentCode) return;
   try {
-    const response = await fetch(API + "/api/stats/" + currentCode);
-    const data = await response.json();
-
-    document.getElementById("stats").innerText =
-      "Total Scans: " + data.scans;
-  } catch (err) {
+    const res = await fetch("/api/stats/" + currentCode);
+    const data = await res.json();
+    document.getElementById("stats").innerText = "Total Scans: " + data.scans;
+  } catch(err){
     console.error("Error fetching stats:", err);
   }
 }
 
-// Refresh stats every 5 seconds
 setInterval(loadStats, 5000);
 </script>
-
 </body>
 </html>
