@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Romit QR Tracker</title>
+<script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    padding: 50px;
+    background: #f7f7f7;
+  }
+  input {
+    width: 300px;
+    padding: 10px;
+    font-size: 16px;
+  }
+  button {
+    padding: 10px 20px;
+    margin-top: 10px;
+    font-size: 16px;
+    cursor: pointer;
+  }
+  #qr {
+    margin-top: 20px;
+  }
+  #result, #stats {
+    margin-top: 15px;
+    font-weight: bold;
+  }
+</style>
+</head>
+<body>
+
+<h1>Romit QR Tracker</h1>
+
+<input id="urlInput" type="text" placeholder="Paste your link here" />
+<br>
+<button onclick="createQR()">Generate QR</button>
+
+<div id="result"></div>
+<canvas id="qr"></canvas>
+<div id="stats"></div>
+
+<script>
+let currentCode = null;
+
+// Use same domain
+const API = "";
+
+async function createQR() {
+  const url = document.getElementById("urlInput").value.trim();
+  if (!url) {
+    alert("Please enter a URL");
+    return;
+  }
+
+  try {
+    const response = await fetch(API + "/api/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url })
+    });
+
+    const data = await response.json();
+    if (data.error) {
+      alert(data.error);
+      return;
+    }
+
+    const shortUrl = data.shortUrl;
+    currentCode = data.code;
+
+    document.getElementById("result").innerHTML =
+      `<p>Short Link: <a href="${shortUrl}" target="_blank">${shortUrl}</a></p>`;
+
+    QRCode.toCanvas(document.getElementById("qr"), shortUrl);
+
+    loadStats();
+  } catch (err) {
+    alert("Error creating QR code: " + err);
+    console.error(err);
+  }
+}
+
+async function loadStats() {
+  if (!currentCode) return;
+
+  try {
+    const response = await fetch(API + "/api/stats/" + currentCode);
+    const data = await response.json();
+
+    document.getElementById("stats").innerText =
+      "Total Scans: " + data.scans;
+  } catch (err) {
+    console.error("Error fetching stats:", err);
+  }
+}
+
+// Refresh stats every 5 seconds
+setInterval(loadStats, 5000);
+</script>
+
+</body>
+</html>
