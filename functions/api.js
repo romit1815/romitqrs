@@ -7,7 +7,6 @@ export async function onRequest(context) {
     "Access-Control-Allow-Headers": "Content-Type",
   };
 
-  // Handle preflight
   if (request.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -15,8 +14,17 @@ export async function onRequest(context) {
   const url = new URL(request.url);
 
   // CREATE SHORT URL
-  if (url.pathname === "/api/create" && request.method === "POST") {
-    const body = await request.json();
+  if (url.pathname === "/api/api" && request.method === "POST") {
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return new Response(JSON.stringify({ error: "Invalid JSON" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const originalUrl = body.url;
     if (!originalUrl) {
       return new Response(JSON.stringify({ error: "URL required" }), {
@@ -26,14 +34,16 @@ export async function onRequest(context) {
     }
 
     const code = crypto.randomUUID().slice(0, 6);
-
     await env.LINKS.put(code, originalUrl);
     await env.SCANS.put(`count_${code}`, "0");
 
-    return new Response(JSON.stringify({
-      shortUrl: `${url.origin}/r/${code}`,
-      code
-    }), { headers: { ...corsHeaders, "Content-Type": "application/json" }});
+    return new Response(
+      JSON.stringify({
+        shortUrl: `${url.origin}/r/${code}`,
+        code: code
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   }
 
   // REDIRECT
